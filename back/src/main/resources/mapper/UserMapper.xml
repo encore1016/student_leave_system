@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.student.leave.mapper.UserMapper">
+
+    <resultMap id="BaseResultMap" type="com.student.leave.entity.User">
+        <id column="id" property="id"/>
+        <result column="username" property="username"/>
+        <result column="password" property="password"/>
+        <result column="name" property="name"/>
+        <result column="phone" property="phone"/>
+        <result column="email" property="email"/>
+        <result column="role" property="role"/>
+        <result column="status" property="status"/>
+        <result column="avatar" property="avatar"/>
+        <result column="class_id" property="classId"/>
+        <result column="college_id" property="collegeId"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM user WHERE id = #{id}
+    </select>
+
+    <select id="selectByUsername" resultMap="BaseResultMap">
+        SELECT * FROM user WHERE username = #{username}
+    </select>
+
+    <select id="selectByPhone" resultMap="BaseResultMap">
+        SELECT * FROM user WHERE phone = #{phone}
+    </select>
+
+    <insert id="insert" parameterType="com.student.leave.entity.User" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user (username, password, name, phone, email, role, status, avatar, class_id, college_id, create_time, update_time)
+        VALUES (#{username}, #{password}, #{name}, #{phone}, #{email}, #{role}, #{status}, #{avatar}, #{classId}, #{collegeId}, NOW(), NOW())
+    </insert>
+
+    <update id="update" parameterType="com.student.leave.entity.User">
+        UPDATE user
+        SET name = #{name},
+            phone = #{phone},
+            email = #{email},
+            avatar = #{avatar},
+            class_id = #{classId},
+            college_id = #{collegeId},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updatePassword">
+        UPDATE user SET password = #{password}, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM user WHERE id = #{id}
+    </delete>
+
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT * FROM user
+        <where>
+            <if test="role != null and role != ''">
+                AND role = #{role}
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
+    <update id="updateStatus">
+        UPDATE user SET status = #{status}, update_time = NOW() WHERE id = #{id}
+    </update>
+
+</mapper>
