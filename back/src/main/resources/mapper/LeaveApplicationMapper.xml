@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.student.leave.mapper.LeaveApplicationMapper">
+
+    <resultMap id="BaseResultMap" type="com.student.leave.entity.LeaveApplication">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="type" property="type"/>
+        <result column="start_time" property="startTime"/>
+        <result column="end_time" property="endTime"/>
+        <result column="days" property="days"/>
+        <result column="reason" property="reason"/>
+        <result column="destination" property="destination"/>
+        <result column="leave_school" property="leaveSchool"/>
+        <result column="attachments" property="attachments"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="user_name" property="userName"/>
+        <result column="user_username" property="userUsername"/>
+    </resultMap>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT la.*, u.name as user_name, u.username as user_username
+        FROM leave_application la
+        LEFT JOIN user u ON la.user_id = u.id
+        WHERE la.id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="com.student.leave.entity.LeaveApplication" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO leave_application (user_id, type, start_time, end_time, days, reason, destination, leave_school, attachments, status, create_time, update_time)
+        VALUES (#{userId}, #{type}, #{startTime}, #{endTime}, #{days}, #{reason}, #{destination}, #{leaveSchool}, #{attachments}, #{status}, NOW(), NOW())
+    </insert>
+
+    <update id="update" parameterType="com.student.leave.entity.LeaveApplication">
+        UPDATE leave_application
+        SET type = #{type},
+            start_time = #{startTime},
+            end_time = #{endTime},
+            days = #{days},
+            reason = #{reason},
+            destination = #{destination},
+            leave_school = #{leaveSchool},
+            attachments = #{attachments},
+            status = #{status},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE leave_application SET status = #{status}, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT la.*, u.name as user_name, u.username as user_username
+        FROM leave_application la
+        LEFT JOIN user u ON la.user_id = u.id
+        WHERE la.user_id = #{userId}
+        <if test="status != null and status != ''">
+            AND la.status = #{status}
+        </if>
+        <if test="type != null and type != ''">
+            AND la.type = #{type}
+        </if>
+        <if test="startTime != null">
+            AND la.start_time &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND la.end_time &lt;= #{endTime}
+        </if>
+        ORDER BY la.create_time DESC
+    </select>
+
+    <select id="selectByClassId" resultMap="BaseResultMap">
+        SELECT la.*, u.name as user_name, u.username as user_username
+        FROM leave_application la
+        LEFT JOIN user u ON la.user_id = u.id
+        WHERE u.class_id = #{classId}
+        <if test="status != null and status != ''">
+            AND la.status = #{status}
+        </if>
+        <if test="type != null and type != ''">
+            AND la.type = #{type}
+        </if>
+        <if test="startTime != null">
+            AND la.start_time &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND la.end_time &lt;= #{endTime}
+        </if>
+        ORDER BY la.create_time DESC
+    </select>
+
+    <select id="selectByCollegeId" resultMap="BaseResultMap">
+        SELECT la.*, u.name as user_name, u.username as user_username
+        FROM leave_application la
+        LEFT JOIN user u ON la.user_id = u.id
+        WHERE u.college_id = #{collegeId}
+        <if test="status != null and status != ''">
+            AND la.status = #{status}
+        </if>
+        <if test="type != null and type != ''">
+            AND la.type = #{type}
+        </if>
+        <if test="startTime != null">
+            AND la.start_time &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND la.end_time &lt;= #{endTime}
+        </if>
+        ORDER BY la.create_time DESC
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT la.*, u.name as user_name, u.username as user_username
+        FROM leave_application la
+        LEFT JOIN user u ON la.user_id = u.id
+        WHERE 1=1
+        <if test="status != null and status != ''">
+            AND la.status = #{status}
+        </if>
+        <if test="type != null and type != ''">
+            AND la.type = #{type}
+        </if>
+        <if test="startTime != null">
+            AND la.start_time &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND la.end_time &lt;= #{endTime}
+        </if>
+        ORDER BY la.create_time DESC
+    </select>
+
+    <select id="checkTimeConflict" resultType="int">
+        SELECT COUNT(*) FROM leave_application
+        WHERE user_id = #{userId}
+        AND status IN ('PENDING', 'APPROVED')
+        AND NOT EXISTS (SELECT 1 FROM leave_return lr WHERE lr.leave_id = leave_application.id)
+        AND (
+            (start_time &lt;= #{startTime} AND end_time &gt;= #{startTime})
+            OR (start_time &lt;= #{endTime} AND end_time &gt;= #{endTime})
+            OR (start_time &gt;= #{startTime} AND end_time &lt;= #{endTime})
+        )
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
+
+    <select id="selectExpiringSoon" resultMap="BaseResultMap">
+        SELECT la.*, u.name as user_name, u.username as user_username
+        FROM leave_application la
+        LEFT JOIN user u ON la.user_id = u.id
+        WHERE la.status = 'APPROVED'
+        AND la.end_time BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL #{hours} HOUR)
+        AND NOT EXISTS (SELECT 1 FROM leave_return lr WHERE lr.leave_id = la.id)
+        ORDER BY la.end_time ASC
+    </select>
+
+    <select id="selectOverdue" resultMap="BaseResultMap">
+        SELECT la.*, u.name as user_name, u.username as user_username
+        FROM leave_application la
+        LEFT JOIN user u ON la.user_id = u.id
+        WHERE la.status = 'APPROVED'
+        AND la.end_time &lt; NOW()
+        AND NOT EXISTS (SELECT 1 FROM leave_return lr WHERE lr.leave_id = la.id)
+        ORDER BY la.end_time ASC
+    </select>
+
+</mapper>
